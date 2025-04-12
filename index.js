@@ -5,7 +5,7 @@ import { rateLimit } from 'express-rate-limit';
 import helmet from 'helmet';
 
 const whitelist = ['::1'];
-//192.168.1.10
+
 const generalLimiter = rateLimit({
 	windowMs: 30 * 1000, // 15 minutes
 	limit: 5, // Limit each IP to 100 requests per `window` (here, per 15 minutes).
