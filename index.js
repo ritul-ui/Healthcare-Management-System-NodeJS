@@ -5,6 +5,8 @@ import { rateLimit } from 'express-rate-limit';
 import helmet from 'helmet';
 import { body, validationResult } from 'express-validator';
 const whitelist = ['::1'];
+import fileUpload from 'express-fileupload';
+import fs from 'fs';
 
 const generalLimiter = rateLimit({
 	windowMs: 30 * 1000, // 15 minutes
@@ -28,6 +30,8 @@ const strictLimiter = rateLimit({
 	legacyHeaders: false, // Disable the `X-RateLimit-*` headers.
 	// store: ... , // Redis, Memcached, etc. See below.
 });
+
+
 
 const app = express();
 import { Server } from "socket.io";
@@ -53,9 +57,13 @@ io.on('connection', (socket) => {
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.static('./public'));
+app.use(fileUpload({
+  limits: { fileSize: 50 * 1024 * 1024 },
+}));
+
 app.use('/sample-get-request', strictLimiter); // Apply rate limiting to the specific route
 app.use(helmet.frameguard({ action: 'deny' })); // Prevent clickjacking
-app.use('/', generalLimiter); // Apply rate limiting to all requests
+// app.use('/', generalLimiter); // Apply rate limiting to all requests
 app.set('view engine', 'ejs');
 // events-demo.js
 import EventEmitter from 'events';
@@ -81,6 +89,34 @@ app.get('/', (req, res) => {
 app.get('/sample-get-request/:werfgrsbrtgf', (req, res) => {
     const someData = req.params.werfgrsbrtgf;
     res.send(`You sent: ${someData}`);
+});
+
+app.get('/user/verify', (req, res) => {
+  return res.render('verify');
+});
+
+
+app.post('/upload-file', (req, res) => {
+  console.log(req.files);
+  if (req.files) {
+    if (!fs.existsSync('./files')){
+      fs.mkdirSync('./files');
+    }
+    const filePath = './files/' + req.files.file.name; 
+    req.files.file.mv('./files/' + req.files.file.name, (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Error occurred while uploading file');
+      }
+    });
+    return res.status(200).json({
+      message: 'File uploaded successfully',
+      fileName: req.files.file.name,
+      filePath: filePath,
+    });
+  } else {
+    return res.status(400).send('No file uploaded');
+  }
 });
 
 app.get('/sample-get-request', (req, res) => {
